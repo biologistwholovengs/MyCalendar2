@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale: 1.0">
+    <title>Вертикальная Лента Дней</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+
+        .days-container {
+            display: flex;
+            flex-direction: column-reverse;
+            overflow-y: auto;
+            width: 100%;
+            height: 100vh;
+            margin: 0 auto;
+            max-width: 600px;
+            padding: 20px 0;
+        }
+
+        .day-wrapper {
+            width: 80%;
+            margin: 0 auto 8px auto; /* Reduced margin */
+            height: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px; /* Reduced padding */
+            background-color: #f9f9f9;
+            border-radius: 20px;
+            box-shadow: 6px 6px 12px rgba(0, 0, 0, 0.2),
+            -2px -2px 5px rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            text-align: center;
+            position: relative;
+            flex-direction: column; /* Changed to column */
+        }
+
+        .day-wrapper:hover {
+            background-color: #eee;
+            box-shadow: 8px 8px 14px rgba(0, 0, 0, 0.3),
+            -3px -3px 7px rgba(255, 255, 255, 0.6); /* Adjusted hover shadow */
+        }
+
+        .current-day {
+            background-color: #c2f0c2;
+            box-shadow: 6px 6px 12px rgba(0, 0, 0, 0.3),
+            -2px -2px 5px rgba(255, 255, 255, 0.5);
+        }
+
+        .weekend-sat {
+            background-color: pink;
+            box-shadow: 6px 6px 12px rgba(0, 0, 0, 0.2),
+            -2px -2px 5px rgba(255, 255, 255, 0.5);
+        }
+
+        .weekend-sun {
+            background-color: red;
+            color: white;
+            box-shadow: 6px 6px 12px rgba(0, 0, 0, 0.2),
+            -2px -2px 5px rgba(255, 255, 255, 0.5);
+        }
+
+        .day-info-container {  /* Added a container for the day info */
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px; /* Reduced margin */
+        }
+
+
+        .day-name {
+            width: 30%;
+            font-size: 1.1em; /* Increased font size */
+            text-align: left;
+        }
+
+        .day-number {
+            width: 30%;
+            font-size: 2.8em; /* Slightly smaller font */
+            font-weight: bold; /* Made bold */
+            text-align: center;
+        }
+
+        .month-year {
+            width: 30%;
+            font-size: 1.1em; /* Increased font size */
+            text-align: right;
+        }
+
+
+        /* New styles for sticker and text area */
+        .sticker-text-area {
+            width: 100%;
+            min-height: 28px; /* Reduced min-height */
+            margin-top: 4px; /* Reduced margin */
+            border-top: 1px solid #ccc;
+            padding: 4px; /* Reduced padding */
+            text-align: left;
+            word-break: break-word;
+            font-size: 1.9em; /* Reduced font size */
+            display: flex;
+            align-items: center;
+            overflow-x: auto;
+            /* Make it non-editable by default */
+            user-select: none; /* Prevent text selection */
+            -webkit-user-select: none; /* For Safari */
+            white-space: pre-wrap; /* Ensure newlines are rendered */
+        }
+
+        /* Style for the editable text field */
+        .editable-text {
+            width: 100%;
+            min-height: 28px; /* Reduced min-height */
+            border: none;
+            outline: none;
+            font-size: 1.9em; /* Reduced font size */
+            text-align: left;
+            word-break: break-word;
+            white-space: pre-wrap; /* Important to preserve newlines */
+            resize: none; /* Prevent resizing */
+            overflow: hidden;
+            background-color: transparent;
+        }
+
+        .sticker-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 4px; /* Reduced padding */
+            z-index: 10;
+            display: none;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .sticker-menu button {
+            font-size: 1.9em; /* Reduced font size */
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 1.8px; /* Reduced padding */
+            margin: 1.8px; /* Reduced margin */
+        }
+
+        .sticker-menu button:hover {
+            background-color: #f0f0f0;
+        }
+
+        .text-input {
+            width: 90%;
+            padding: 4px; /* Reduced padding */
+            margin-top: 4px; /* Reduced margin */
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            display: none;
+        }
+
+        /* Style when the text area is active/editable */
+        .sticker-text-area.active {
+            user-select: text; /* Allow text selection */
+            -webkit-user-select: text; /* For Safari */
+        }
+
+        /* Full-screen Modal Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 10px; /* Reduced padding a bit */
+            box-sizing: border-box;
+            border: none;
+            border-radius: 0;
+            overflow: auto; /* Enable scroll if needed */
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Calendar Styles (inside modal) */
+        .calendar-container {
+            display: flex;
+            flex-direction: column; /* Stack calendars vertically */
+            align-items: stretch; /* Stretch calendars to full width */
+            width: 100%;
+            height: 100%; /* Take up the full modal height */
+            overflow-y: auto; /* Enable vertical scrolling */
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .calendar {
+            width: 100%; /* Take up the full width of the container */
+            border: 2px solid #ccc; /* Increased border width */
+            border-radius: 20px; /* Add rounded corners */
+            padding: 10px;
+            box-sizing: border-box;
+            margin-bottom: 10px; /* Space between calendars */
+            display: flex; /* Use flexbox to control layout */
+            flex-direction: column;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .calendar-body {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr); /* 7 columns for days of the week */
+            gap: 2px; /* Reduced gap slightly */
+        }
+
+        .calendar-day {
+            padding: 6px; /* Slightly larger padding for better spacing */
+            text-align: center;
+            border: 1px solid #eee;
+            border-radius: 0;
+            box-sizing: border-box;
+            font-size: 0.85em; /* Make font a bit smaller to fit */
+            overflow: hidden; /* Ensure content doesn't overflow */
+            position: relative;
+            cursor: pointer; /* Indicate it's clickable */
+        }
+
+        .calendar-day.current {
+            background-color: #c2f0c2;
+        }
+
+        .calendar-day.weekend-sat {
+            background-color: pink;
+        }
+
+        .calendar-day.weekend-sun {
+            background-color: red;
+            color: white;
+        }
+
+        .has-data::after {
+            content: "!";
+            color: red;
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+
+<div class="days-container" id="daysContainer">
+</div>
+
+<!-- The Modal -->
+<div id="myModal" class="modal">
+
+    <!-- Modal content -->
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div id="calendarContainer" class="calendar-container">
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const MONTH_NAMES = {
+        1: "Январь", 2: "Февраль", 3: "Март", 4: "Апрель",
+        5: "Май", 6: "Июнь", 7: "Июль", 8: "Август",
+        9: "Сентябрь", 10: "Октябрь", 11: "Ноябрь", 12: "Декабрь"
+    };
+
+    const DAY_NAMES = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"];
+
+    const STICKER_OPTIONS = ["😊", "😂", "😍", "👍", "👎", "🤔", "🔥", "💯", "🚄", "✈️", "💼", "⏱️", "✉️", "🍔", "🤝", "⚕️", "🏖️", "🏋️", "💇", "📸"];  // Updated emojis
+
+    const daysContainer = document.getElementById("daysContainer");
+    const today = new Date();
+    const numberOfDays = 24 * 30;
+    const pastEndDate = new Date(today.getTime() - (12 * 30 * 24 * 60 * 60 * 1000));
+
+    let activeTextArea = null; // Track the currently active text area
+    let touchStartX = 0;
+    const SWIPE_THRESHOLD = 50; // Minimum distance to register a swipe
+
+    // Function to load data from localStorage
+    function loadData() {
+        try {
+            const savedData = localStorage.getItem('dayData');
+            return savedData ? JSON.parse(savedData) : {};
+        } catch (error) {
+            console.error("Error loading data from localStorage:", error);
+            return {};
+        }
+    }
+
+
+    // Function to save data to localStorage
+    function saveData(data) {
+        try {
+            localStorage.setItem('dayData', JSON.stringify(data));
+        } catch (error) {
+            console.error("Error saving data to localStorage:", error);
+        }
+    }
+
+    let dayData = loadData();
+
+    const modal = document.getElementById("myModal");
+    const closeModal = document.querySelector(".close");
+    const calendarContainer = document.getElementById("calendarContainer");
+
+    let selectedDate = new Date(); // Start with the current date
+
+    function generateCalendar(year, month) {
+        const calendarDiv = document.createElement("div");
+        calendarDiv.classList.add("calendar");
+
+        const calendarHeader = document.createElement("div");
+        calendarHeader.classList.add("calendar-header");
+        calendarDiv.appendChild(calendarHeader);
+
+        const monthNameHeader = document.createElement("h2");
+        monthNameHeader.textContent = `${MONTH_NAMES[month + 1]} ${year}`;
+        calendarHeader.appendChild(monthNameHeader);
+
+        const calendarBody = document.createElement("div");
+        calendarBody.classList.add("calendar-body");
+        calendarDiv.appendChild(calendarBody);
+
+        const firstDayOfMonth = new Date(year, month, 1);
+        const lastDayOfMonth = new Date(year, month + 1, 0);
+        const daysInMonth = lastDayOfMonth.getDate();
+        const startingDay = (firstDayOfMonth.getDay() + 6) % 7; // Ensure Monday is 0
+
+        // Add empty cells for days before the first day of the month
+        for (let i = 0; i < startingDay; i++) {
+            const emptyCell = document.createElement("div");
+            emptyCell.classList.add("calendar-day");
+            calendarBody.appendChild(emptyCell);
+        }
+
+        // Add days of the month
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayCell = document.createElement("div");
+            dayCell.classList.add("calendar-day");
+            dayCell.textContent = day;
+
+            const currentDate = new Date(year, month, day);
+            const dateKey = `${day}-${MONTH_NAMES[month + 1]}-${year}`;
+            if (dayData[dateKey]) {
+                dayCell.classList.add("has-data");
+            }
+
+            if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
+                dayCell.classList.add("current");
+            }
+
+            if (currentDate.getDay() === 6) {
+                dayCell.classList.add("weekend-sat");
+            } else if (currentDate.getDay() === 0) {
+                dayCell.classList.add("weekend-sun");
+            }
+
+            dayCell.addEventListener("click", () => {
+                scrollToDate(currentDate);
+                modal.style.display = "none";
+            });
+
+            calendarBody.appendChild(dayCell);
+        }
+        return calendarDiv;
+    }
+
+    function displayTwoYearsOfMonths(date) {
+        calendarContainer.innerHTML = ""; // Clear existing calendars
+        const currentYear = date.getFullYear();
+        const currentMonth = date.getMonth();
+
+        for (let i = -12; i <= 12; i++) {
+            const monthDate = new Date(currentYear, currentMonth + i, 1);
+            const calendar = generateCalendar(monthDate.getFullYear(), monthDate.getMonth());
+            calendarContainer.appendChild(calendar);
+        }
+    }
+
+    function openModalCalendar(date) {
+        selectedDate = new Date(date); // Update selectedDate when opening modal
+        displayTwoYearsOfMonths(selectedDate);
+        modal.style.display = "block";
+
+        // Scroll to the calendar of the selected date.
+        setTimeout(() => {
+            scrollToCalendarOfDate(selectedDate);
+        }, 100);
+    }
+
+    closeModal.onclick = function () {
+        modal.style.display = "none";
+    }
+
+    window.onclick = function (event) {
+        if (event.target === modal) {
+            modal.style.display = "none";
+        }
+    }
+
+    function scrollToDate(date) {
+        const day = date.getDate();
+        const monthName = MONTH_NAMES[date.getMonth() + 1];
+        const year = date.getFullYear();
+        const dateKey = `${day}-${monthName}-${year}`;
+
+        // Find the day element with the matching dateKey
+        const dayElement = document.querySelector(`.day-wrapper .sticker-text-area[data-date="${dateKey}"]`)?.closest('.day-wrapper');
+
+        if (dayElement) {
+            dayElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }
+    }
+
+     function scrollToCalendarOfDate(date) {
+        // Calculate the index of the calendar for the selected date
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth();
+        const year = date.getFullYear();
+        const month = date.getMonth();
+
+        const monthDifference = (year - currentYear) * 12 + (month - currentMonth);
+        const calendarIndex = monthDifference + 12; // Shifts the range from -12 to +12 to 0 to 24
+
+        // Get the calendar element if it exists and scroll to it
+        if (calendarContainer.children[calendarIndex]) {
+            calendarContainer.children[calendarIndex].scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    }
+
+    for (let i = 0; i < numberOfDays; i++) {
+        const date = new Date(pastEndDate.getTime() + (i * 24 * 60 * 60 * 1000));
+        const day = date.getDate();
+        const dayName = DAY_NAMES[date.getDay() - 1 < 0 ? 6 : date.getDay() - 1];
+        const monthName = MONTH_NAMES[date.getMonth() + 1];
+        const year = date.getFullYear();
+        const dateKey = `${day}-${monthName}-${year}`;
+
+        let dayClass = "day-wrapper";
+        const isToday = (date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate());
+
+        if (isToday) {
+            dayClass += " current-day";
+        } else if (date.getDay() === 6) {
+            dayClass += " weekend-sat";
+        } else if (date.getDay() === 0) {
+            dayClass += " weekend-sun";
+        }
+
+        const dayElement = document.createElement('div');
+        dayElement.className = dayClass;
+        dayElement.innerHTML = `
+            <div class="day-info-container">
+                <div class="day-name">${dayName}</div>
+                <div class="day-number">${day}</div>
+                <div class="month-year">${monthName} ${year}</div>
+            </div>
+            <div class="sticker-text-area" data-date="${dateKey}">${dayData[dateKey] || ''}</div>
+            <div class="sticker-menu">
+                ${STICKER_OPTIONS.map(sticker => `<button data-sticker="${sticker}">${sticker}</button>`).join('')}
+            </div>
+        `;
+
+        daysContainer.appendChild(dayElement);
+
+        const textArea = dayElement.querySelector('.sticker-text-area');
+        textArea.innerHTML = dayData[dateKey] || ''; // Load saved content
+
+        let timerId;
+        dayElement.addEventListener('touchstart', (e) => {
+            timerId = setTimeout(() => {
+                openModalCalendar(date);
+            }, 500); // Long press for 500ms
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        dayElement.addEventListener('touchend', (e) => {
+            clearTimeout(timerId); // Cancel timer if touch ends before 500ms
+            const touchEndX = e.changedTouches[0].screenX;
+            const swipeDistance = touchEndX - touchStartX;
+
+            if (swipeDistance > SWIPE_THRESHOLD) {
+                showStickerMenu(textArea, dayElement);
+            }
+        });
+
+        dayElement.addEventListener('mousedown', (e) => {
+            timerId = setTimeout(() => {
+                openModalCalendar(date);
+            }, 500);
+            touchStartX = e.screenX;
+        });
+
+         dayElement.addEventListener('mouseup', (e) => {
+             clearTimeout(timerId);
+             const touchEndX = e.screenX;
+             const swipeDistance = touchEndX - touchStartX;
+
+             if (swipeDistance > SWIPE_THRESHOLD) {
+                 showStickerMenu(textArea, dayElement);
+             }
+         });
+
+        dayElement.addEventListener('mouseleave', () => { // Clear timer if mouse leaves
+             clearTimeout(timerId);
+         });
+
+         dayElement.addEventListener('dblclick', () => {
+             scrollToCurrentDay();
+         });
+
+
+
+    }
+
+
+    function showStickerMenu(textArea, dayElement) {
+        const stickerMenu = dayElement.querySelector('.sticker-menu');
+        const dateKey = textArea.dataset.date;
+
+        // Deactivate the previously active text area, if any
+        if (activeTextArea && activeTextArea !== textArea) {
+            activeTextArea.classList.remove('active');
+            activeTextArea.contentEditable = 'false';
+        }
+
+        textArea.classList.add('active'); // Add the 'active' class
+        textArea.contentEditable = 'true'; // Enable editing
+        activeTextArea = textArea; // Track this text area as active
+
+        stickerMenu.style.display = 'flex';
+        textArea.focus();
+
+        // Sticker Selection Logic
+        stickerMenu.querySelectorAll('button[data-sticker]').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const sticker = e.target.dataset.sticker;
+                insertAtCursor(textArea, document.createTextNode(sticker));
+                dayData[dateKey] = textArea.innerHTML; // Update data with HTML
+                saveData(dayData); // Save the data
+                stickerMenu.style.display = 'none';
+                e.stopPropagation();
+            });
+        });
+
+        //Outside click closing
+        document.addEventListener('click', function closeMenu(event) {
+            if (!dayElement.contains(event.target)) {
+               stickerMenu.style.display = 'none';
+               textArea.classList.remove('active'); // Remove the 'active' class
+               textArea.contentEditable = 'false'; // Disable editing
+               activeTextArea = null;
+               document.removeEventListener('click', closeMenu);
+            }
+        });
+
+        // Listen for changes in the textarea and save to localStorage
+        textArea.addEventListener('input', () => {
+            dayData[dateKey] = textArea.innerHTML;
+            saveData(dayData);
+        });
+
+       textArea.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Prevent the default action (like submitting a form)
+
+                // Insert a BR element instead
+                const br = document.createElement('br');
+                insertAtCursor(textArea, br);
+
+                dayData[dateKey] = textArea.innerHTML; // Update data with HTML
+                saveData(dayData); // Save the data
+            }
+        });
+    }
+
+
+   function insertAtCursor(element, node) {
+        let sel, range;
+        if (window.getSelection && document.createRange) {
+            sel = window.getSelection();
+            if (sel.getRangeAt && sel.rangeCount) {
+                range = sel.getRangeAt(0);
+                range.deleteContents();
+                range.insertNode(node);
+
+                // Move the cursor after the inserted node
+                range = document.createRange();
+                range.setStartAfter(node);
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+        } else if (document.selection && document.body.createTextRange) {
+            const textRange = document.selection.createRange();
+            textRange.pasteHTML(text);
+        }
+    }
+
+
+    function scrollToCurrentDay() {
+        if (daysContainer.querySelector(".current-day")) {
+            daysContainer.querySelector(".current-day").scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        } else {
+            console.log("Current day element not found for scrolling.");
+        }
+    }
+
+
+    daysContainer.addEventListener('click', (event) => {
+        if (event.target.classList.contains('days-container')) {
+            // Deactivate the currently active text area when clicking outside
+            if (activeTextArea) {
+                activeTextArea.classList.remove('active');
+                activeTextArea.contentEditable = 'false';
+                activeTextArea = null; // Clear the active text area
+            }
+        }
+    });
+
+      daysContainer.addEventListener('dblclick', (event) => {
+          scrollToCurrentDay();
+      });
+
+
+    setTimeout(scrollToCurrentDay, 100);
+
+</script>
+
+</body>
+</html>
